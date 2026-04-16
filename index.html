@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ontact MetaMask</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #f5f7fa;
+      color: #333;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      background-color: #ffffff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+    }
+
+    header img {
+      height: 40px;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 40px auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* MetaMask 연결/해제 버튼 */
+    .metamask-section {
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #connectBtn {
+      background-color: #f6851b;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    #connectBtn:hover {
+      background-color: #e2761b;
+    }
+
+    #addressDisplay {
+      font-size: 15px;
+      color: #555;
+      word-break: break-all;
+      text-align: center;
+      min-height: 24px;
+    }
+
+    #disconnectBtn {
+      display: none;
+      background-color: #e53935;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    #disconnectBtn:hover {
+      background-color: #c62828;
+    }
+
+    /* 구분선 */
+    .divider {
+      width: 90%;
+      border: none;
+      border-top: 1px solid #dce0e6;
+    }
+
+    /* 트랜잭션 버튼 */
+    .tx-btn {
+      width: 90%;
+      background-color: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: background-color 0.2s;
+    }
+
+    .tx-btn:hover {
+      background-color: #1565c0;
+    }
+
+    /* 발급 일정표 */
+    .schedule-section {
+      width: 90%;
+    }
+
+    .schedule-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1565c0;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .schedule-header:hover {
+      background-color: #bbdefb;
+    }
+
+    .schedule-box {
+      border: 1px solid #b0bec5;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      background-color: #fff;
+      max-height: 280px;
+      overflow-y: auto;
+      font-size: 13px;
+      font-family: monospace;
+    }
+
+    .schedule-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .schedule-row:last-child {
+      border-bottom: none;
+    }
+
+    .schedule-index {
+      color: #999;
+      min-width: 32px;
+    }
+
+    .schedule-time {
+      color: #333;
+      flex: 1;
+    }
+
+    .schedule-status.issued {
+      color: #2e7d32;
+      font-weight: 700;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .schedule-status.not-issued {
+      color: #c62828;
+      font-weight: 700;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .schedule-status.unknown {
+      color: #999;
+      font-weight: 400;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    /* 파라미터 표시 박스 */
+    .param-box {
+      width: 90%;
+      background-color: #f0f4f8;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .param-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .param-key {
+      color: #6a737d;
+      white-space: nowrap;
+      min-width: 140px;
+      font-weight: 600;
+    }
+
+    .param-value {
+      color: #333;
+      word-break: break-all;
+    }
+
+    /* 링크 박스 레이블 행 */
+    .tx-link-label-row {
+      width: 90%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: -8px;
+    }
+
+    .tx-link-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .small-btn {
+      background-color: #e0e0e0;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .small-btn:hover {
+      background-color: #bdbdbd;
+    }
+
+    .small-btn.accent {
+      background-color: #43a047;
+      color: #fff;
+    }
+
+    .small-btn.accent:hover {
+      background-color: #388e3c;
+    }
+
+    /* 트랜잭션 링크 한 줄 박스 */
+    .tx-link-box {
+      width: 90%;
+      border: 1px solid #b0bec5;
+      border-radius: 6px;
+      background-color: #fff;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: #1976d2;
+      height: 38px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+    }
+
+    .tx-link-box a {
+      color: #1976d2;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tx-link-box a:hover {
+      text-decoration: underline;
+    }
+
+    /* 결과 창 */
+    .result-box {
+      width: 90%;
+      height: 50vh;
+      border: 1px solid #b0bec5;
+      border-radius: 8px;
+      background-color: #fff;
+      padding: 16px;
+      overflow-y: auto;
+      font-size: 13px;
+      font-family: monospace;
+      color: #333;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="https://www.ontact.at/images/logo_ontact.png" alt="Ontact Logo" />
+</header>
+
+<main>
+
+  <!-- 발급 일정표 -->
+  <div class="schedule-section">
+    <div class="schedule-header" onclick="toggleSchedule()">
+      <span>발급 일정표</span>
+      <span style="display:flex;align-items:center;gap:10px;">
+        <span id="scheduleStatus" style="font-size:11px;font-weight:400;color:#555;" onclick="event.stopPropagation()"></span>
+        <button class="small-btn" onclick="event.stopPropagation(); fetchScheduleStatus();" style="font-size:11px;padding:3px 10px;">새로고침</button>
+        <span id="scheduleToggleIcon">▼</span>
+      </span>
+    </div>
+    <div class="schedule-box" id="scheduleBox"></div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- MetaMask 연결 -->
+  <div class="metamask-section">
+    <button id="connectBtn" onclick="connectMetaMask()">MetaMask 연결</button>
+    <div id="addressDisplay">아직 연결되지 않았습니다.</div>
+    <button id="disconnectBtn" onclick="disconnectMetaMask()">연결 해제</button>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- 1. SubmitTransaction 버튼 -->
+  <button id="btnSubmitTransaction" class="tx-btn" onclick="submitTransaction()">
+    1. SubmitTransaction (0x4CCf198f9bF069855ec5A4143F30E4C3A807A9E6)
+  </button>
+
+  <!-- 파라미터 표시 -->
+  <div class="param-box">
+    <div class="param-row">
+      <span class="param-key">unlocks (address[])</span>
+      <span class="param-value">
+        0x3e44213019c4e07bD86782891Ff7E9F77C9ae906,
+        0xfc23c809034ab688be247008e2d89e50069676c0,
+        0x0f5ca3cffb05f41b673178b7619d6cd744709a30,
+        0x305b4ef4264476c73ae29706806e9addb2e53616,
+        0xc79c965cc9a7b509ea046a3724092d737bbbc35f,
+        0x5070d3afa2cab30b88b813551f7931e52fafd591,
+        0x166eafa6e3a1ff7b0cb0bd4703bc92868cbce141
+      </span>
+    </div>
+    <div class="param-row">
+      <span class="param-key">value (uint256)</span>
+      <span class="param-value">0</span>
+    </div>
+    <div class="param-row">
+      <span class="param-key">data (bytes)</span>
+      <span class="param-value">0xed10e33c</span>
+    </div>
+  </div>
+
+  <!-- 트랜잭션 링크 박스 -->
+  <div class="tx-link-label-row">
+    <span class="tx-link-label">1번 실행결과</span>
+    <button class="small-btn" onclick="manualLink()">수동 링크 넣기</button>
+    <button class="small-btn accent" onclick="analyzeLink()">분석하기</button>
+  </div>
+  <div class="tx-link-box" id="txLinkBox">트랜잭션 링크가 여기에 표시됩니다.</div>
+
+  <!-- 결과 창 -->
+  <div class="result-box" id="resultBox">결과가 여기에 표시됩니다.</div>
+
+  <!-- 2. ConfirmUnLocks 버튼 -->
+  <button id="btnConfirmUnLocks" class="tx-btn" onclick="confirmUnLocks()">
+    2. ConfirmUnLocks (0xb3f565EF24c481Ee957f5683c51f1EB32cc0dCc5)
+  </button>
+
+  <!-- ConfirmUnLocks 파라미터 표시 -->
+  <div class="param-box" id="confirmParamBox">
+    <div class="param-row">
+      <span class="param-key">txid (uint256[])</span>
+      <span class="param-value" id="confirmParamValue">-</span>
+    </div>
+  </div>
+
+  <!-- 8. ConfirmUnLocks 트랜잭션 링크 박스 -->
+  <div class="tx-link-label">2번 실행결과</div>
+  <div class="tx-link-box" id="confirmTxLinkBox">트랜잭션 링크가 여기에 표시됩니다.</div>
+
+  <!-- 9. ConfirmUnLocks 결과 창 -->
+  <div class="result-box" id="confirmResultBox">결과가 여기에 표시됩니다.</div>
+
+</main>
+
+<script>
+  let connectedAccount = null;
+  let transactionIds = [];
+
+  const SCHEDULE_TIMES = [
+    1,
+    1702598400, 1705276800, 1707955200, 1710460800, 1713139200,
+    1715731200, 1718409600, 1721001600, 1723680000, 1726358400,
+    1728950400, 1731628800, 1734220800, 1736899200, 1739577600,
+    1741996800, 1744675200, 1747267200, 1749945600, 1752537600,
+    1755216000, 1757894400, 1760486400, 1763164800, 1765756800,
+    1768435200, 1771113600, 1773532800, 1776211200, 1778803200,
+    1781481600, 1784073600, 1786752000, 1789430400, 1792022400,
+    1794700800, 1797292800, 1799971200, 1802649600, 1805068800,
+    1807747200, 1810339200, 1813017600, 1815609600, 1818288000,
+    1820966400, 1823558400, 1826236800,
+  ];
+
+  function formatKST(ts) {
+    const date = new Date((ts + 9 * 3600) * 1000);
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(date.getUTCDate()).padStart(2, '0');
+    const h = String(date.getUTCHours()).padStart(2, '0');
+    const min = String(date.getUTCMinutes()).padStart(2, '0');
+    const s = String(date.getUTCSeconds()).padStart(2, '0');
+    return y + '.' + m + '.' + d + ' ' + h + ':' + min + ':' + s + '(KST)';
+  }
+
+  let lastConfirmTimestamp = null;
+
+  function renderSchedule() {
+    const box = document.getElementById('scheduleBox');
+
+    // lastConfirmTimestamp 가 없으면 상태 미확인으로 표시 (현재 시각 fallback 금지)
+    box.innerHTML = SCHEDULE_TIMES.map((ts, i) => {
+      let statusHtml;
+      if (lastConfirmTimestamp === null) {
+        statusHtml = '<span class="schedule-status unknown">미확인</span>';
+      } else {
+        const issued = lastConfirmTimestamp >= ts;
+        statusHtml = '<span class="schedule-status ' + (issued ? 'issued' : 'not-issued') + '">' +
+          (issued ? '발급됨' : '미발급') + '</span>';
+      }
+      return '<div class="schedule-row">' +
+        '<span class="schedule-index">' + (i + 1) + '.</span>' +
+        '<span class="schedule-time">' + formatKST(ts) + '</span>' +
+        statusHtml +
+        '</div>';
+    }).join('');
+  }
+
+  async function fetchTxListEtherscan() {
+    const url = 'https://api.etherscan.io/api?module=account&action=txlist' +
+      '&address=0x32b921eB829D922357C6FCdC38E3E437a47748d7' +
+      '&startblock=0&endblock=99999999&page=1&offset=200&sort=desc';
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status !== '1' || !Array.isArray(data.result)) throw new Error(data.message || 'Etherscan 오류');
+    return data.result;
+  }
+
+  async function fetchTxListBlockscout() {
+    const url = 'https://eth.blockscout.com/api/v2/addresses/0x32b921eB829D922357C6FCdC38E3E437a47748d7/transactions?filter=to';
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!Array.isArray(data.items)) throw new Error('Blockscout 오류');
+    // Blockscout 형식을 Etherscan 형식으로 변환
+    return data.items.map(tx => ({
+      input: tx.raw_input || '',
+      timeStamp: String(Math.floor(new Date(tx.timestamp).getTime() / 1000)),
+    }));
+  }
+
+  async function fetchScheduleStatus() {
+    const statusEl = document.getElementById('scheduleStatus');
+    statusEl.textContent = '로딩 중...';
+
+    let txList = null;
+
+    // Etherscan 먼저, 실패 시 Blockscout 시도
+    try {
+      txList = await fetchTxListEtherscan();
+    } catch (e1) {
+      try {
+        txList = await fetchTxListBlockscout();
+      } catch (e2) {
+        statusEl.textContent = '오류: API 호출 실패 (' + e1.message + ')';
+        lastConfirmTimestamp = null;
+        renderSchedule();
+        return;
+      }
+    }
+
+    // 가장 최근 confirmUnLocks 트랜잭션 (selector: 0xbdfb77c1)
+    const confirmTx = txList.find(tx =>
+      tx.input && tx.input.toLowerCase().startsWith('0xbdfb77c1')
+    );
+
+    if (confirmTx) {
+      lastConfirmTimestamp = parseInt(confirmTx.timeStamp);
+      statusEl.textContent = '기준: ' + formatKST(lastConfirmTimestamp);
+    } else {
+      lastConfirmTimestamp = null;
+      statusEl.textContent = 'confirmUnLocks 내역 없음';
+    }
+
+    renderSchedule();
+  }
+
+  let scheduleVisible = true;
+  function toggleSchedule() {
+    const box = document.getElementById('scheduleBox');
+    const icon = document.getElementById('scheduleToggleIcon');
+    scheduleVisible = !scheduleVisible;
+    box.style.display = scheduleVisible ? 'block' : 'none';
+    icon.textContent = scheduleVisible ? '▼' : '▶';
+  }
+
+  // MetaMask 주입 대기 (최대 3초 재시도)
+  function waitForEthereum(timeout = 3000) {
+    return new Promise((resolve) => {
+      if (window.ethereum) { resolve(window.ethereum); return; }
+      const interval = 100;
+      let elapsed = 0;
+      const timer = setInterval(() => {
+        elapsed += interval;
+        if (window.ethereum) { clearInterval(timer); resolve(window.ethereum); }
+        else if (elapsed >= timeout) { clearInterval(timer); resolve(null); }
+      }, interval);
+    });
+  }
+
+  // 페이지 로드 시 일정표 렌더링 + MetaMask 자동 감지
+  window.addEventListener('DOMContentLoaded', async () => {
+    fetchScheduleStatus();
+    // file:// 프로토콜 경고
+    if (location.protocol === 'file:') {
+      log('⚠️ 경고: file:// 로 열려 있어 MetaMask가 동작하지 않습니다.\n로컬 서버로 실행해주세요.\n\n방법 1 (Python): python3 -m http.server 8080\n방법 2 (Node):   npx serve .\n\n그 후 http://localhost:8080 으로 접속하세요.');
+      return;
+    }
+    const eth = await waitForEthereum();
+    if (!eth) return;
+    try {
+      const accounts = await eth.request({ method: 'eth_accounts' });
+      if (accounts.length > 0) {
+        setConnected(accounts[0]);
+        log('기존 연결 감지: ' + accounts[0]);
+      }
+    } catch (err) {
+      // 자동 감지 실패는 무시
+    }
+  });
+
+  async function connectMetaMask() {
+    // file:// 프로토콜 차단
+    if (location.protocol === 'file:') {
+      alert('file:// 프로토콜에서는 MetaMask가 동작하지 않습니다.\n\n로컬 서버를 실행한 후 http://localhost 로 접속해주세요.\n\n예) python3 -m http.server 8080');
+      return;
+    }
+
+    const eth = await waitForEthereum();
+    if (!eth || !eth.isMetaMask) {
+      alert('MetaMask가 감지되지 않습니다.\nhttps://metamask.io 에서 설치 후 브라우저를 새로고침 해주세요.');
+      return;
+    }
+
+    try {
+      // wallet_requestPermissions: 항상 계정 선택 팝업을 띄움
+      await eth.request({
+        method: 'wallet_requestPermissions',
+        params: [{ eth_accounts: {} }],
+      });
+      const accounts = await eth.request({ method: 'eth_accounts' });
+      if (accounts.length === 0) throw new Error('계정을 선택하지 않았습니다.');
+      setConnected(accounts[0]);
+      log('MetaMask 연결됨: ' + accounts[0]);
+    } catch (err) {
+      if (err.code === 4001) {
+        log('연결 거부: 사용자가 MetaMask 연결을 취소했습니다.');
+      } else {
+        log('연결 오류: ' + err.message);
+      }
+    }
+  }
+
+  function setConnected(account) {
+    connectedAccount = account;
+    document.getElementById('addressDisplay').textContent = '연결된 주소: ' + account;
+    document.getElementById('connectBtn').style.display = 'none';
+    document.getElementById('disconnectBtn').style.display = 'inline-block';
+  }
+
+  function disconnectMetaMask() {
+    connectedAccount = null;
+    document.getElementById('addressDisplay').textContent = '아직 연결되지 않았습니다.';
+    document.getElementById('connectBtn').style.display = 'inline-block';
+    document.getElementById('disconnectBtn').style.display = 'none';
+    log('MetaMask 연결이 해제되었습니다.');
+  }
+
+  async function submitTransaction() {
+    if (!connectedAccount) {
+      alert('먼저 MetaMask를 연결해주세요.');
+      return;
+    }
+
+    const REQUIRED_ADDRESS = '0x4CCf198f9bF069855ec5A4143F30E4C3A807A9E6';
+    if (connectedAccount.toLowerCase() !== REQUIRED_ADDRESS.toLowerCase()) {
+      log('연결된 주소가 틀립니다.\n  필요한 주소: ' + REQUIRED_ADDRESS + '\n  현재 주소:   ' + connectedAccount);
+      return;
+    }
+
+    const CONTRACT_ADDRESS = '0x32b921eB829D922357C6FCdC38E3E437a47748d7';
+    const UNLOCKS = [
+      '0x3e44213019c4e07bD86782891Ff7E9F77C9ae906',
+      '0xfc23c809034ab688be247008e2d89e50069676c0',
+      '0x0f5ca3cffb05f41b673178b7619d6cd744709a30',
+      '0x305b4ef4264476c73ae29706806e9addb2e53616',
+      '0xc79c965cc9a7b509ea046a3724092d737bbbc35f',
+      '0x5070d3afa2cab30b88b813551f7931e52fafd591',
+      '0x166eafa6e3a1ff7b0cb0bd4703bc92868cbce141',
+    ];
+
+    log('SubmitTransaction 실행 중...\n  contract: ' + CONTRACT_ADDRESS + '\n  from: ' + connectedAccount);
+
+    try {
+      // ABI 인코딩
+      const iface = new ethers.Interface([
+        'function submitTransaction(address[] unlocks, uint256 value, bytes data)',
+      ]);
+      const calldata = iface.encodeFunctionData('submitTransaction', [
+        UNLOCKS,
+        0,
+        '0xed10e33c',
+      ]);
+
+      log('  calldata: ' + calldata);
+
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: connectedAccount,
+          to: CONTRACT_ADDRESS,
+          data: calldata,
+          value: '0x0',
+        }],
+      });
+
+      const etherscanUrl = 'https://etherscan.io/tx/' + txHash;
+      log('SubmitTransaction 완료!\n  txHash: ' + txHash + '\n  링크: ' + etherscanUrl);
+      const linkBox = document.getElementById('txLinkBox');
+      linkBox.innerHTML = '<a href="' + etherscanUrl + '" target="_blank">' + etherscanUrl + '</a>';
+    } catch (err) {
+      log('SubmitTransaction 오류: ' + err.message);
+    }
+  }
+
+  async function confirmUnLocks() {
+    if (!connectedAccount) {
+      alert('먼저 MetaMask를 연결해주세요.');
+      return;
+    }
+
+    const REQUIRED_ADDRESS = '0xb3f565EF24c481Ee957f5683c51f1EB32cc0dCc5';
+    if (connectedAccount.toLowerCase() !== REQUIRED_ADDRESS.toLowerCase()) {
+      confirmLog('연결된 주소가 틀립니다.\n  필요한 주소: ' + REQUIRED_ADDRESS + '\n  현재 주소:   ' + connectedAccount);
+      return;
+    }
+
+    if (transactionIds.length === 0) {
+      confirmLog('ConfirmUnLocks 오류: transactionIds 가 비어 있습니다.\n먼저 1번 실행결과를 분석하기 해주세요.');
+      return;
+    }
+
+    const CONTRACT_ADDRESS = '0x32b921eB829D922357C6FCdC38E3E437a47748d7';
+    confirmLog('ConfirmUnLocks 실행 중...\n  contract: ' + CONTRACT_ADDRESS + '\n  from: ' + connectedAccount + '\n  txid: [' + transactionIds.join(', ') + ']');
+
+    try {
+      // ABI 인코딩: confirmUnLocks(uint256[] txid)
+      const iface = new ethers.Interface([
+        'function confirmUnLocks(uint256[] txid)',
+      ]);
+      const calldata = iface.encodeFunctionData('confirmUnLocks', [transactionIds]);
+
+      confirmLog('  calldata: ' + calldata);
+
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: connectedAccount,
+          to: CONTRACT_ADDRESS,
+          data: calldata,
+          value: '0x0',
+        }],
+      });
+
+      const etherscanUrl = 'https://etherscan.io/tx/' + txHash;
+      confirmLog('ConfirmUnLocks 완료!\n  txHash: ' + txHash + '\n  링크: ' + etherscanUrl);
+
+      const linkBox = document.getElementById('confirmTxLinkBox');
+      linkBox.innerHTML = '<a href="' + etherscanUrl + '" target="_blank">' + etherscanUrl + '</a>';
+    } catch (err) {
+      confirmLog('ConfirmUnLocks 오류: ' + err.message);
+    }
+  }
+
+  function log(message) {
+    const box = document.getElementById('resultBox');
+    const timestamp = new Date().toLocaleTimeString();
+    box.textContent = '[' + timestamp + '] ' + message + '\n\n' + box.textContent;
+  }
+
+  function manualLink() {
+    const input = prompt('트랜잭션 링크 또는 해시를 입력해주세요:');
+    if (input === null || input.trim() === '') return;
+    const value = input.trim();
+    const linkBox = document.getElementById('txLinkBox');
+    // URL 형태면 링크로, 아니면 텍스트로 표시
+    if (value.startsWith('http')) {
+      linkBox.innerHTML = '<a href="' + value + '" target="_blank">' + value + '</a>';
+    } else {
+      linkBox.textContent = value;
+    }
+  }
+
+  // 공개 RPC로 트랜잭션 receipt를 직접 fetch (빠른 응답)
+  async function fetchTxReceipt(txHash) {
+    const rpcs = [
+      'https://cloudflare-eth.com',
+      'https://eth.llamarpc.com',
+      'https://rpc.ankr.com/eth',
+    ];
+    const body = JSON.stringify({
+      jsonrpc: '2.0', method: 'eth_getTransactionReceipt',
+      params: [txHash], id: 1,
+    });
+    const results = await Promise.any(
+      rpcs.map(url =>
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+          .then(r => r.json())
+          .then(j => { if (!j.result) throw new Error('no result'); return j.result; })
+      )
+    );
+    return results;
+  }
+
+  async function analyzeLink() {
+    const btn = document.querySelector('.small-btn.accent');
+    if (btn.disabled) return;
+
+    const linkBox = document.getElementById('txLinkBox');
+    const anchor = linkBox.querySelector('a');
+    const value = (anchor ? anchor.href : linkBox.textContent).trim();
+
+    if (!value || value === '트랜잭션 링크가 여기에 표시됩니다.') {
+      log('분석하기: 링크 박스가 비어 있습니다.');
+      return;
+    }
+
+    const hashMatch = value.match(/0x[a-fA-F0-9]{64}/);
+    if (!hashMatch) {
+      log('분석하기: 유효한 트랜잭션 해시를 찾을 수 없습니다.\n  입력값: ' + value);
+      return;
+    }
+    const txHash = hashMatch[0];
+
+    // 버튼 비활성화 (중복 클릭 방지)
+    btn.disabled = true;
+    btn.textContent = '분석 중...';
+    log('분석하기: 트랜잭션 이벤트 로그 분석 중...\n  txHash: ' + txHash);
+
+    try {
+      const receipt = await fetchTxReceipt(txHash);
+      if (!receipt) {
+        log('분석하기: 트랜잭션을 찾을 수 없습니다. (pending 상태이거나 잘못된 해시)');
+        return;
+      }
+
+      // Submission(uint256 indexed transactionId) 이벤트 토픽
+      const submissionTopic = ethers.id('Submission(uint256)');
+      const ids = [];
+
+      for (const entry of receipt.logs) {
+        if (entry.topics[0] === submissionTopic && entry.topics[1]) {
+          ids.push(Number(BigInt(entry.topics[1])));
+        }
+      }
+
+      if (ids.length === 0) {
+        log('분석하기: Submission 이벤트를 찾을 수 없습니다.\n  총 로그 수: ' + receipt.logs.length);
+        return;
+      }
+
+      transactionIds = ids;
+      const idsStr = '[' + ids.join(', ') + ']';
+      log('분석하기 완료!\n  transactionIds: ' + idsStr + '\n  총 ' + ids.length + '개');
+
+      const resultBox = document.getElementById('resultBox');
+      resultBox.textContent = 'transactionIds: ' + idsStr + '\n\n' + resultBox.textContent;
+
+      // ConfirmUnLocks 파라미터 박스 업데이트
+      document.getElementById('confirmParamValue').textContent = idsStr;
+    } catch (err) {
+      log('분석하기 오류: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '분석하기';
+    }
+  }
+
+  function confirmLog(message) {
+    const box = document.getElementById('confirmResultBox');
+    const timestamp = new Date().toLocaleTimeString();
+    box.textContent = '[' + timestamp + '] ' + message + '\n\n' + box.textContent;
+  }
+
+  // 계정 변경 감지
+  if (typeof window.ethereum !== 'undefined') {
+    window.ethereum.on('accountsChanged', (accounts) => {
+      if (accounts.length === 0) {
+        disconnectMetaMask();
+      } else {
+        connectedAccount = accounts[0];
+        document.getElementById('addressDisplay').textContent = '연결된 주소: ' + connectedAccount;
+        log('계정 변경됨: ' + connectedAccount);
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
