@@ -345,9 +345,9 @@
 
   <hr class="divider" />
 
-  <!-- 1. SubmitTransaction 버튼 -->
+  <!-- 1. SubmitUnLocks 버튼 -->
   <button id="btnSubmitTransaction" class="tx-btn" onclick="submitTransaction()">
-    1. SubmitTransaction (0x4CCf198f9bF069855ec5A4143F30E4C3A807A9E6)
+    1. SubmitUnLocks (0x4CCf198f9bF069855ec5A4143F30E4C3A807A9E6)
   </button>
 
   <!-- 파라미터 표시 -->
@@ -631,14 +631,14 @@
       '0x166eafa6e3a1ff7b0cb0bd4703bc92868cbce141',
     ];
 
-    log('SubmitTransaction 실행 중...\n  contract: ' + CONTRACT_ADDRESS + '\n  from: ' + connectedAccount);
+    log('SubmitUnLocks 실행 중...\n  contract: ' + CONTRACT_ADDRESS + '\n  from: ' + connectedAccount);
 
     try {
       // ABI 인코딩
       const iface = new ethers.Interface([
-        'function submitTransaction(address[] unlocks, uint256 value, bytes data)',
+        'function submitUnLocks(address[] unlocks, uint256 value, bytes data)',
       ]);
-      const calldata = iface.encodeFunctionData('submitTransaction', [
+      const calldata = iface.encodeFunctionData('submitUnLocks', [
         UNLOCKS,
         0,
         '0xed10e33c',
@@ -657,11 +657,11 @@
       });
 
       const etherscanUrl = 'https://etherscan.io/tx/' + txHash;
-      log('SubmitTransaction 완료!\n  txHash: ' + txHash + '\n  링크: ' + etherscanUrl);
+      log('SubmitUnLocks 완료!\n  txHash: ' + txHash + '\n  링크: ' + etherscanUrl);
       const linkBox = document.getElementById('txLinkBox');
       linkBox.innerHTML = '<a href="' + etherscanUrl + '" target="_blank">' + etherscanUrl + '</a>';
     } catch (err) {
-      log('SubmitTransaction 오류: ' + err.message);
+      log('SubmitUnLocks 오류: ' + err.message);
     }
   }
 

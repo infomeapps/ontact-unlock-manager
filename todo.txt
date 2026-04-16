@@ -93,3 +93,6 @@ https://etherscan.io/tx/0xeb203377e23828e80423a7872602c9a752634dc31345ec6bb92f5b
 
 https://etherscan.io/txs?a=0x32b921eB829D922357C6FCdC38E3E437a47748d7 트랜잭션의 실행 여부 입니다. 트랙잭션 중에 Confirm Un Locks 메소드가 실행된 시간을 기준으로 해주세요.
 마지막 트랜잭션 중에 Confirm Un Locks 메소드가 실행된 block.timestamp 가 SCHEDULE_TIMES 항목을 기준으로 발급된. 미발급 으로 표시해주세요.
+
+// todo26 추가 
+26.   id="btnSubmitTransaction" 을 클릭시 submitUnLocks (0xd0c0d6db) 을 호출하게 변경해주세요. 화면에 SubmitTransaction 으로 표시 하고 있는 부분도 다 변경해주세요.
