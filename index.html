@@ -733,25 +733,71 @@
     }
   }
 
-  // 공개 RPC로 트랜잭션 receipt를 직접 fetch (빠른 응답)
+  // 공개 RPC 하나에서 receipt 조회 (실패 사유를 명확히 던짐)
+  async function fetchRpcReceipt(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if (j.error) throw new Error(j.error.message || 'RPC 오류');
+    if (!j.result) throw new Error('receipt 없음 (미확정 트랜잭션?)');
+    return j.result;
+  }
+
+  // 익스플로러 API 로 receipt(logs) 조회 — RPC 실패 시 CORS-안전 폴백
+  async function fetchExplorerReceipt(txHash) {
+    // Etherscan proxy (표준 receipt 형식) 우선 시도
+    try {
+      const res = await fetch('https://api.etherscan.io/api?module=proxy&action=eth_getTransactionReceipt&txhash=' + txHash);
+      const j = await res.json();
+      if (j.result && Array.isArray(j.result.logs)) return j.result;
+    } catch (e) { /* Blockscout 로 폴백 */ }
+
+    // Blockscout v2 (logs 배열을 receipt 형식으로 정규화)
+    const res = await fetch('https://eth.blockscout.com/api/v2/transactions/' + txHash + '/logs');
+    if (!res.ok) throw new Error('Blockscout HTTP ' + res.status);
+    const j = await res.json();
+    if (!Array.isArray(j.items)) throw new Error('logs 없음 (미확정 트랜잭션?)');
+    return { logs: j.items };
+  }
+
+  // 공개 RPC → 익스플로러 순으로 트랜잭션 receipt 조회 (실패 시 사유 취합)
   async function fetchTxReceipt(txHash) {
+    const errors = [];
+
     const rpcs = [
-      'https://cloudflare-eth.com',
       'https://eth.llamarpc.com',
+      'https://ethereum-rpc.publicnode.com',
+      'https://eth.drpc.org',
       'https://rpc.ankr.com/eth',
     ];
     const body = JSON.stringify({
       jsonrpc: '2.0', method: 'eth_getTransactionReceipt',
       params: [txHash], id: 1,
     });
-    const results = await Promise.any(
-      rpcs.map(url =>
-        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
-          .then(r => r.json())
-          .then(j => { if (!j.result) throw new Error('no result'); return j.result; })
-      )
-    );
-    return results;
+
+    // 1) 공개 RPC 병렬 시도 (가장 먼저 성공한 응답 사용)
+    try {
+      return await Promise.any(rpcs.map(url => fetchRpcReceipt(url, body)));
+    } catch (err) {
+      // Promise.any 는 전부 실패 시 AggregateError → 개별 사유를 펼쳐서 기록
+      const reasons = err && Array.isArray(err.errors) ? err.errors : [err];
+      reasons.forEach((e, i) => {
+        errors.push((rpcs[i] || 'RPC') + ' → ' + (e && e.message ? e.message : e));
+      });
+    }
+
+    // 2) 익스플로러 proxy 폴백
+    try {
+      return await fetchExplorerReceipt(txHash);
+    } catch (e) {
+      errors.push('explorer → ' + (e && e.message ? e.message : e));
+    }
+
+    throw new Error('모든 조회 소스 실패\n  ' + errors.join('\n  '));
   }
 
   async function analyzeLink() {
